@@ -12,6 +12,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
+// #include "DataSet1000.c"
 
 /* preprocessor constants */
 #define SIZE 10
@@ -53,8 +54,14 @@ int main(int argc, char *argv[])
   /* create the first sorter thread (thread_0) with appropriate subrange */
   SubRange *sRange = (SubRange *)malloc(sizeof(SubRange));	// create a SubRange pointer variable to set the 
   								// subrange of dataset before passing to the thread
-  // -----DUMMIED UP -- WRITE YOUR CODE HERE------ //
+
+  // initialize attributes
+  pthread_attr_t attr;
+  pthread_attr_init(&attr);
   
+  sRange->startIndex = 0;
+  sRange->endIndex = SIZE/2;
+  pthread_create(&tid[0], &attr, sorter, sRange);
 
 
   
@@ -62,14 +69,18 @@ int main(int argc, char *argv[])
   /* create the second sorter thread (thread_1) with appropriate subrange -- as above */
   // -----DUMMIED UP -- WRITE YOUR CODE HERE------ //
 
+  SubRange *sRange2 = (SubRange *)malloc(sizeof(SubRange));
+  sRange2->startIndex = SIZE/2;
+  sRange2->endIndex = SIZE;
+  pthread_create(&tid[1], &attr, sorter, sRange2);
+
 
 
   //======================>> 10 POINTS <<=====================
   /* wait for the sorter threads to return to the parent thread -- fork-join strategy */
   for(int i = 0; i < NUM_THREADS-1; i++) {
   	// -----DUMMIED UP -- WRITE YOUR CODE HERE------- //
-	
-
+    pthread_join(tid[i], NULL);
   } // end of for
 
 
@@ -79,12 +90,18 @@ int main(int argc, char *argv[])
    * Note: Here, the 'SubRange' struct will contain the startIndex values of
    * thread_0 and thread_1 in the startIndex and endIndex, respectively.
    * */
+   SubRange *mRange = (SubRange *)malloc(sizeof(SubRange));
+   mRange->startIndex = 0;
+   mRange->endIndex = SIZE/2;
+   pthread_create(&tid[2], &attr, merger, mRange);
+  
 
 
 
   //======================>> 5 POINTS <<=====================
   /* wait for the merger thread to finish */
   // -----DUMMIED UP -- WRITE YOUR CODE HERE------ //
+  pthread_join(tid[2], NULL);
 
 
 
@@ -98,6 +115,11 @@ int main(int argc, char *argv[])
   return 0;
 } // end of main
 
+/* comparison algorithm for quicksort */
+int comp(const void *a, const void *b)
+{
+    return (*(int*)a - *(int*)b);
+}
 
 /*
  * definition of the entry point for sorter thread
@@ -110,16 +132,14 @@ void *sorter(void *param)
 
     //======================>> 20 POINTS <<=====================
     // -----DUMMIED UP -- WRITE YOUR CODE HERE------ //
-
-
+    // just used the built in quicksort
+    qsort(dataSet + range->startIndex, range->endIndex - range->startIndex, sizeof(int), comp);
 
     /* exit sorter thread */
     // -----DUMMIED UP -- WRITE YOUR CODE HERE------ //
-
-
+    pthread_exit(0);
 
 } // end of sorter
-
 
 /**
  * definition of the entry point for the  merger thread
@@ -129,14 +149,48 @@ void *sorter(void *param)
  */
 void *merger(void *param) 
 {
+    SubRange *range = (SubRange *)param;
+    int sorted[SIZE];
     //======================>> 20 POINTS <<=====================
     /* Implement merge sort for merging the two sublist of the dataset */
     // -----DUMMIED UP -- WRITE YOUR CODE HERE------ //
+    int p1 = range->startIndex;
+    int p2 = range->endIndex;
 
-
-
+    for (int i = 0; i < SIZE; i++)
+    {
+      // base cases
+      if (p1 >= range->endIndex) 
+      {
+        sorted[i] = dataSet[p2];
+        p2++;
+      }
+      else if (p2 >= SIZE) 
+      {
+        sorted[i] = dataSet[p1];
+        p1++;
+      }
+      // if element in first half less than element in second, first goes first
+      else if (dataSet[p1] <= dataSet[p2])
+      {
+        sorted[i] = dataSet[p1];
+        p1++;
+      }
+      // otherwise second goes first
+      else 
+      {
+        sorted[i] = dataSet[p2];
+        p2++;
+      }
+    }
+    
+    // copy sorted array over
+    for (int i = 0; i < SIZE; i++)
+    {
+      dataSet[i] = sorted[i];
+    }
     /* exit merger thread */
     // -----DUMMIED UP -- WRITE YOUR CODE HERE------ //
-
+    pthread_exit(0);
 
 } // end of merger
